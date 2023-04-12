@@ -1,0 +1,57 @@
+<launch>
+
+  <!--
+  <include file="$(find moveit_resources_panda_moveit_config)/launch/planning_context.launch">
+    <arg name="load_gripper" value="$(var load_gripper)" />
+  </include>
+  -->
+  <arg name="pipeline" default="ompl" />
+
+  <!-- move_group settings -->
+  <arg name="allow_trajectory_execution" default="true"/>
+  <arg name="fake_execution" default="false"/>
+  <arg name="max_safe_path_cost" default="1"/>
+  <arg name="jiggle_fraction" default="0.05" />
+  <arg name="publish_monitored_planning_scene" default="true"/>
+
+  <!-- Planning Functionality -->
+  <!--
+  <include ns="move_group" file="$(find moveit_resources_panda_moveit_config)/launch/planning_pipeline.launch.xml">
+    <arg name="pipeline" value="$(var pipeline)" />
+  </include>
+  -->
+  
+  <!-- Trajectory Execution Functionality -->
+  <!--
+  <include ns="move_group" file="$(find moveit_resources_panda_moveit_config)/launch/trajectory_execution.launch.xml" if="$(var allow_trajectory_execution)">
+    <arg name="moveit_manage_controllers" value="true" />
+    <arg name="moveit_controller_manager" value="panda" if="$(eval not arg('fake_execution') and not arg('load_gripper'))"/>
+    <arg name="moveit_controller_manager" value="panda_gripper" if="$(eval not arg('fake_execution') and arg('load_gripper'))"/>
+    <arg name="moveit_controller_manager" value="fake" if="$(var fake_execution)"/>
+  </include>
+  -->
+  
+  <!-- Start the actual move_group node/action server -->  
+  <node name="move_group"
+	pkg="moveit_ros_move_group"
+	exec="move_group"
+	respawn="false"
+	output="screen"
+	namespace="PSM1">
+
+    <param name="robot_description_semantic" value=""/>
+    
+    <param name="allow_trajectory_execution" value="$(var allow_trajectory_execution)"/>
+    <param name="max_safe_path_cost" value="$(var max_safe_path_cost)"/>
+    <param name="jiggle_fraction" value="$(var jiggle_fraction)" />
+
+    <!-- Publish the planning scene of the physical robot so that rviz plugin can know actual robot -->
+    <param name="planning_scene_monitor/publish_planning_scene" value="$(var publish_monitored_planning_scene)" />
+    <param name="planning_scene_monitor/publish_geometry_updates" value="$(var publish_monitored_planning_scene)" />
+    <param name="planning_scene_monitor/publish_state_updates" value="$(var publish_monitored_planning_scene)" />
+    <param name="planning_scene_monitor/publish_transforms_updates" value="$(var publish_monitored_planning_scene)" />
+
+    <remap from="/joint_states" to="/joint_states_desired" />
+  </node>
+
+</launch>
