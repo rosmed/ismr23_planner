@@ -1,6 +1,7 @@
 #include <ismr23/ismr23.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Transform.h>
+#include <tf2/convert.h>
 
 using namespace ismr23;
 using namespace std::chrono_literals;
@@ -61,6 +62,10 @@ psm_planner::psm_planner( const std::string& name ) :
   for( std::size_t i=0; i<seed_state.joint_state.name.size(); i++ )
     seed_state.joint_state.position.push_back(0.0);
   seed_state.joint_state.header.frame_id = "world";
+
+  tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+  
 }
 
 void psm_planner::robot_description_callback( const std_msgs::msg::String& rd ){
@@ -71,44 +76,37 @@ void psm_planner::robot_description_callback( const std_msgs::msg::String& rd ){
 void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Received poses" );
+
+  geometry_msgs::msg::TransformStamped trans;
+  trans = tf_buffer->lookupTransform( "world", "PSM1_tool_tip_link", tf2::TimePointZero);
+  geometry_msgs::msg::Pose pose;
+  pose.orientation = trans.transform.rotation;
+  pose.position.x = trans.transform.translation.x;
+  pose.position.y = trans.transform.translation.y;
+  pose.position.z = trans.transform.translation.z;
+  
   
   auto request = std::make_shared<moveit_msgs::srv::GetCartesianPath::Request>();
   request->header = poses.header;
   request->header.frame_id = "world";
-  request->waypoints = poses.poses;
+  
+  request->waypoints.push_back( pose );
+  request->waypoints.insert( request->waypoints.end(), poses.poses.begin(), poses.poses.end() );
+  
   request->start_state = seed_state;
   request->group_name = "psm1_arm";
   request->link_name = "PSM1_tool_tip_link";
   request->max_step = 0.010000;
   request->jump_threshold = 0.0;
   request->avoid_collisions = false;
-  /*
-  geometry_msgs::msg::Pose Rt;
-  Rt.position.x = -0.26;
-  Rt.position.y = 0.0;
-  Rt.position.z = 0.49;
   
-  Rt.orientation.x =  0.70710678118654752440;
-  Rt.orientation.y = -0.70710678118654752440;
-  Rt.orientation.z = 0.0;
-  Rt.orientation.w = 0.0;
-  request->waypoints.push_back(Rt);
-  */
-
-  for( size_t i=0; i<poses.poses.size(); i++ ){
-    /*
-    tf2::Transform Rt;
-    tf2::convert(request->waypoints[i], Rt);
-    tf2::Transform Rotx( tf2::Quaternion(M_SQRT2/2, 0.0, 0.0, M_SQRT2/2), tf2::Vector3(0, 0, 0) );
-    tf2::Transform Rtrot = Rt*Rotx;
-    tf2::toMsg(Rtrot, request->waypoints[i]);
-    */
+  for( size_t i=0; i<request->waypoints.size(); i++ ){
     request->waypoints[i].orientation.x = 0.70710678118654752440;
     request->waypoints[i].orientation.y = -0.70710678118654752440;
     request->waypoints[i].orientation.z = 0;
     request->waypoints[i].orientation.w = 0;
-
   }
+  
   // wait for CP service
   while(!client_cp->wait_for_service(1s)) {
     if (!rclcpp::ok()) {
