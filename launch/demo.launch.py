@@ -169,13 +169,13 @@ def generate_launch_description():
     #)
     
     # Publish TF
-    robot_state_publisher = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="robot_state_publisher",
-        output="both",
-        parameters=[robot_description],
-    )
+    #robot_state_publisher = Node(
+    #    package="robot_state_publisher",
+    #    executable="robot_state_publisher",
+    #    name="robot_state_publisher",
+    #    output="both",
+    #    parameters=[robot_description],
+    #)
 
     # ros2_control using FakeSystem as hardware
     ros2_controllers_path = os.path.join(
@@ -183,26 +183,26 @@ def generate_launch_description():
         "config",
         "ros_controllers.yaml",
     )
-    ros2_control_node = Node(
-        package="controller_manager",
-        executable="ros2_control_node",
-        parameters=[robot_description, ros2_controllers_path],
-        output={
-            "stdout": "screen",
-            "stderr": "screen",
-        },
-    )
+    #ros2_control_node = Node(
+    #    package="controller_manager",
+    #    executable="ros2_control_node",
+    #    parameters=[robot_description, ros2_controllers_path],
+    #    output={
+    #        "stdout": "screen",
+    #        "stderr": "screen",
+    #    },
+    #)
 
     # Load controllers
-    load_controllers = []
-    for controller in ["psm1_arm_controller", "joint_state_broadcaster"]:
-        load_controllers += [
-            ExecuteProcess(
-                cmd=["ros2 run controller_manager spawner.py {}".format(controller)],
-                shell=True,
-                output="screen",
-            )
-        ]
+    #load_controllers = []
+    #for controller in ["psm1_arm_controller", "joint_state_broadcaster"]:
+    #    load_controllers += [
+    #        ExecuteProcess(
+    #            cmd=["ros2 run controller_manager spawner.py {}".format(controller)],
+    #            shell=True,
+    #            output="screen",
+    #        )
+    #    ]
 
     # Warehouse mongodb server
     db_config = LaunchConfiguration("db")
@@ -225,10 +225,10 @@ def generate_launch_description():
             rviz_node,
             rviz_node_tutorial,
 #            static_tf,
-            robot_state_publisher,
+#            robot_state_publisher,
             run_move_group_node,
-            ros2_control_node,
+#            ros2_control_node,
             mongodb_server_node,
         ]
-        + load_controllers
+#        + load_controllers
     )
