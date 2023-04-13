@@ -71,6 +71,8 @@ void psm_planner::robot_description_callback( const std_msgs::msg::String& rd ){
 void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Received poses" );
+
+  // get current position from tf and add to waypoints
   
   auto request = std::make_shared<moveit_msgs::srv::GetCartesianPath::Request>();
   request->header = poses.header;
