@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <std_msgs/msg/string.hpp>
 
@@ -20,6 +21,7 @@ namespace ismr23{
 
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr sub_pose;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr sub_description;
+    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr sub_joint_state;
 
     rclcpp::Client<moveit_msgs::srv::GetPositionFK>::SharedPtr client_fk;
     rclcpp::Client<moveit_msgs::srv::GetPositionIK>::SharedPtr client_ik;
@@ -39,6 +41,7 @@ namespace ismr23{
 
     void robot_description_callback( const std_msgs::msg::String& rd );
     void pose_callback( const geometry_msgs::msg::PoseArray& poses );
+    void joint_state_callback( const sensor_msgs::msg::JointState& js );
 
     void response_callback
     ( rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::SharedPtr handle );

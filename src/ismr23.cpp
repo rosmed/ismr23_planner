@@ -19,6 +19,9 @@ psm_planner::psm_planner( const std::string& name ) :
 		    std::bind(&psm_planner::robot_description_callback, this,
 			      std::placeholders::_1 ) );
 
+  sub_joint_state = create_subscription<sensor_msgs::msg::JointState>( "/PSM1/joint_states", 10, 
+		    std::bind(&psm_planner::joint_state_callback, this, std::placeholders::_1 ) );
+
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating ID client");
   client_ik = create_client<moveit_msgs::srv::GetPositionIK>( "/compute_ik" );
   client_fk = create_client<moveit_msgs::srv::GetPositionFK>( "/compute_fk" );
@@ -37,12 +40,14 @@ psm_planner::psm_planner( const std::string& name ) :
 									       group_fjt );
   
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Waiting for robot action service..");
-  //client_fjt->wait_for_action_server();
+  client_fjt->wait_for_action_server();
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Moving on.");
 
   seed_state.joint_state.name.push_back("outer_yaw");
-  seed_state.joint_state.name.push_back("outer_pitch_1");
+  seed_state.joint_state.name.push_back("outer_pitch");
+  seed_state.joint_state.name.push_back("outer_pitch_2");
   seed_state.joint_state.name.push_back("outer_pitch_3");
+  seed_state.joint_state.name.push_back("outer_pitch_4");
   seed_state.joint_state.name.push_back("outer_pitch_5");
 
   seed_state.joint_state.name.push_back("outer_insertion");
@@ -55,8 +60,6 @@ psm_planner::psm_planner( const std::string& name ) :
   seed_state.joint_state.name.push_back("jaw_mimic_1");
   seed_state.joint_state.name.push_back("jaw_mimic_2");
 
-  seed_state.joint_state.name.push_back("outer_pitch_4");
-  seed_state.joint_state.name.push_back("outer_pitch_2");
   
   
   for( std::size_t i=0; i<seed_state.joint_state.name.size(); i++ )
@@ -68,9 +71,12 @@ psm_planner::psm_planner( const std::string& name ) :
   
 }
 
-void psm_planner::robot_description_callback( const std_msgs::msg::String& rd ){
-  robot_description = rd.data;
-  std::cout << robot_description << std::endl;
+void psm_planner::robot_description_callback( const std_msgs::msg::String& rd )
+{ robot_description = rd.data; }
+
+void psm_planner::joint_state_callback( const sensor_msgs::msg::JointState& js ){
+  seed_state.joint_state = js;
+  seed_state.joint_state.header.frame_id = "world";
 }
 
 void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
@@ -85,7 +91,7 @@ void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
   pose.position.y = trans.transform.translation.y;
   pose.position.z = trans.transform.translation.z;
   
-  auto request = std::make_shared<moveit_msgs::srv::GetCartesianPath::Request>();
+   auto request = std::make_shared<moveit_msgs::srv::GetCartesianPath::Request>();
   request->header = poses.header;
   request->header.frame_id = "world";
   
@@ -174,12 +180,18 @@ void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
     break;
   }
 
-  /*
   if( result.get()->error_code.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS ){
 
     control_msgs::action::FollowJointTrajectory::Goal resection;
     resection.trajectory = result.get()->solution.joint_trajectory;
 
+    for(int i=0; i<resection.trajectory.points.size(); i++ ){
+      for(int j=0; j<resection.trajectory.joint_names.size(); j++ ){
+	std::cout << resection.trajectory.joint_names[j] << " " << resection.trajectory.points[i].positions[j] << std::endl;
+      }
+    std::cout << std::endl;
+    }
+    
     rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SendGoalOptions options;
     options.goal_response_callback = std::bind(&psm_planner::response_callback, this, _1);
     options.feedback_callback = std::bind(&psm_planner::feedback_callback, this, _1, _2);
@@ -191,7 +203,6 @@ void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
     std::cout << "done" << std::endl;
     
   }
-  */
   
 }
 
