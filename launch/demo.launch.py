@@ -160,6 +160,18 @@ def generate_launch_description():
         condition=UnlessCondition(tutorial_mode),
     )
 
+    ismr_planner = Node(
+        package="ismr23",
+        executable="ismr23_node",
+        name="ismr_planner",
+        output={
+            "stdout": "screen",
+            "stderr": "screen",
+        },
+        remappings=[
+            ('/pose_array', '/slicer_posearray'),
+        ],
+        )
     # Static TF
     #static_tf = Node(
     #    package="tf2_ros",
@@ -225,6 +237,7 @@ def generate_launch_description():
             db_arg,
             rviz_node,
             rviz_node_tutorial,
+            ismr_planner,
 #            static_tf,
 #            robot_state_publisher,
             run_move_group_node,
