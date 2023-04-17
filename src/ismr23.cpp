@@ -19,7 +19,7 @@ psm_planner::psm_planner( const std::string& name ) :
 		    std::bind(&psm_planner::robot_description_callback, this,
 			      std::placeholders::_1 ) );
 
-  sub_joint_state = create_subscription<sensor_msgs::msg::JointState>( "/PSM1/joint_states", 10, 
+  sub_joint_state = create_subscription<sensor_msgs::msg::JointState>( "/PSM3/joint_states", 10, 
 		    std::bind(&psm_planner::joint_state_callback, this, std::placeholders::_1 ) );
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating ID client");
@@ -82,34 +82,42 @@ void psm_planner::joint_state_callback( const sensor_msgs::msg::JointState& js )
 void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
 
   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Received poses" );
-
+  /*
   geometry_msgs::msg::TransformStamped trans;
-  trans = tf_buffer->lookupTransform( "world", "PSM1_tool_tip_link", tf2::TimePointZero);
+  trans = tf_buffer->lookupTransform( "world", "PSM3_tool_tip_link", tf2::TimePointZero);
   geometry_msgs::msg::Pose pose;
   pose.orientation = trans.transform.rotation;
   pose.position.x = trans.transform.translation.x;
   pose.position.y = trans.transform.translation.y;
   pose.position.z = trans.transform.translation.z;
-  
-   auto request = std::make_shared<moveit_msgs::srv::GetCartesianPath::Request>();
+  */
+  auto request = std::make_shared<moveit_msgs::srv::GetCartesianPath::Request>();
   request->header = poses.header;
   request->header.frame_id = "world";
   
-  request->waypoints.push_back( pose );
-  request->waypoints.insert( request->waypoints.end(), poses.poses.begin(), poses.poses.end() );
+  //request->waypoints.push_back( pose );
+  //request->waypoints.insert( request->waypoints.end(), poses.poses.begin(), poses.poses.begin() + 20 );
+  //request->waypoints.insert( request->waypoints.end(), poses.poses.begin(), poses.poses.end() );
+  request->waypoints = poses.poses;
   
   request->start_state = seed_state;
   request->group_name = "psm1_arm";
-  request->link_name = "PSM1_tool_tip_link";
+  request->link_name = "PSM3_tool_tip_link";
   request->max_step = 0.010000;
   request->jump_threshold = 0.0;
   request->avoid_collisions = false;
-  
+
+
+  // TODO: FIX REGISTRATION
   for( size_t i=0; i<request->waypoints.size(); i++ ){
+    if( i != 0 );
+    request->waypoints[i].position.x = request->waypoints[i].position.x  - 0.75;
+    /*
     request->waypoints[i].orientation.x = 0.70710678118654752440;
     request->waypoints[i].orientation.y = -0.70710678118654752440;
     request->waypoints[i].orientation.z = 0;
     request->waypoints[i].orientation.w = 0;
+    */
   }
   
   // wait for CP service
@@ -186,6 +194,7 @@ void psm_planner::pose_callback( const geometry_msgs::msg::PoseArray& poses ){
     resection.trajectory = result.get()->solution.joint_trajectory;
 
     for(int i=0; i<resection.trajectory.points.size(); i++ ){
+      //resection.trajectory.points[i].positions[3] = -1*resection.trajectory.points[i].positions[3];
       for(int j=0; j<resection.trajectory.joint_names.size(); j++ ){
 	std::cout << resection.trajectory.joint_names[j] << " " << resection.trajectory.points[i].positions[j] << std::endl;
       }
@@ -213,7 +222,7 @@ void psm_planner::response_callback
 void psm_planner::feedback_callback
 ( rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::SharedPtr ,
   const std::shared_ptr<const control_msgs::action::FollowJointTrajectory::Feedback> )
-{ std::cout << "feedback " << std::endl; }
+{ }//std::cout << "feedback " << std::endl; }
 
 void psm_planner::result_callback
 ( const rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::WrappedResult&  ){
@@ -274,7 +283,7 @@ void psm_planner::result_callback
   auto fk_req = std::make_shared<moveit_msgs::srv::GetPositionFK::Request>();
   fk_req->header.frame_id = "world";
   fk_req->header.stamp = now();
-  fk_req->fk_link_names.push_back( "PSM1_tool_tip_link" );
+  fk_req->fk_link_names.push_back( "PSM3_tool_tip_link" );
   fk_req->robot_state = seed_state;
   {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Sending FK request");
