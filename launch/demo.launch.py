@@ -46,9 +46,10 @@ def generate_launch_description():
     # planning_context
     robot_description_config = xacro.process_file(
         os.path.join(
-            get_package_share_directory("dvrk_psm_moveit2_config"),
-            "config",
-            "dvrk_psm.urdf.xacro",
+            get_package_share_directory("dvrk_model"),
+            #get_package_share_directory("dvrk_psm_moveit2_config"),
+            "model",
+            "PSM3.urdf.xacro",
         )
     )
     robot_description = {"robot_description": robot_description_config.toxml()}
@@ -79,7 +80,7 @@ def generate_launch_description():
 
     # Trajectory Execution Functionality
     moveit_simple_controllers_yaml = load_yaml(
-        "dvrk_psm_moveit2_config", "config/moveit_controllers.yaml"
+        "dvrk_model", "config/dvrk_joint_trajectory_config.yaml"
     )
     moveit_controllers = {
         "moveit_simple_controller_manager": moveit_simple_controllers_yaml,
